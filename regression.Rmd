@@ -79,32 +79,39 @@ saveRDS(sl19reg, "./data/sl19reg.rds")
 # reread in object
 sl19reg <- readRDS("./data/sl19reg.rds")
 df <- sl19reg
+y <- df$wealth
+x <- df$acres
 
-# lm1
-lm1 <- lm(data = df, wealth ~ acres)
-summary(lm1)
-# plot(lm1)
+# examine histograms and boxplots
+hist(x)
+hist(y)
+boxplot(x)
+boxplot(y)
+plot(x, y)
 
-# try transforming variables
-hist(df$acres)
-hist(df$wealth)
-boxplot(df$acres)
-boxplot(df$wealth)
+# linear regression attempt 1
+model1 <- lm(y ~ x)
+summary(model1)
+plot(model1)
 
 # shift all wealth values above 0
-df$wealth0 <- df$wealth - min(df$wealth)
-df$wealthsqrt <- (df$wealth0 + 1)^0.25
+df$wealth0 <- y - min(y)
+df$wealthsqrt <- (df$wealth0)^0.25
 df$acreslog <- log(df$acres + 1)
+x2 <- df$acreslog
+y2 <- df$wealthsqrt
 
-hist(df$acreslog)
-hist(df$wealthsqrt)
-boxplot(df$acreslog)
-boxplot(df$wealthsqrt)
+# rexamine histograms and boxplots
+hist(x2)
+hist(y2)
+boxplot(x2)
+boxplot(y2)
+plot(x2, y2)
+abline(lm(y2 ~ x2))
 
-plot(df$acreslog, df$wealthsqrt)
 
-# lm2 
-lm2 <- lm(data = df, wealthsqrt ~ acreslog)
-summary(lm2)
-plot(lm2)
+# linear regression attempt 2
+model2 <- lm(y2 ~ x2)
+summary(model2)
+plot(model2)
 ```
