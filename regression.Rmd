@@ -1,0 +1,110 @@
+---
+title: "Regression"
+author: "IsaiahLG"
+date: "4/19/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+
+## Import Data
+```{r}
+# import necessary library
+library(rdhs)
+
+# set credentials for accessing DHS API
+set_rdhs_config(email = "isaiah.lyons-galante@colorado.edu",
+                project = "Machine Learning Class Project")
+
+# download actual datasets
+downloads <- get_datasets("SLHR7AFL.ZIP")
+
+# read in the dataset
+sl19 <- readRDS(downloads$SLHR7AFL)
+
+# get the variable labels for all column headers
+var_labels <- get_variable_labels(sl19)
+
+# export data
+saveRDS(sl19, "./data/sl19.rds")
+```
+
+## Cut Down Data 
+```{r}
+# read in RDS
+sl19 <- readRDS("./data/sl19.rds")
+
+# columns of interest
+predictor <- "hv245" # Hectares of agricultural land (1 decimal)
+target <- "hv271" # Wealth index factor score combined (5 decimals)
+allCols <- c(predictor, target)
+
+# filter
+sl19two <- sl19[,allCols]
+
+
+# export to RDS
+saveRDS(sl19two, "./data/sl19two.rds")
+```
+
+## Clean Data
+```{r}
+# reimport
+sl19two <- readRDS("./data/sl19two.rds")
+df <- sl19two
+
+# clean up data
+df <- na.omit(df) # remove NA values
+df <- haven::zap_labels(df) # remove labels
+df <- df %>% mutate_at(allCols, as.numeric) # turn into numbers for filtering
+df <- df %>% filter(hv245 < 950) # eliminate "unknown" answers and 950 high point
+df <- df %>% filter(hv245 > 0) # eliminate 0s
+df <- df %>% filter(hv271 > -146639) # eliminate outlier
+
+# rename columns
+colnames(df)[1] = "acres"
+colnames(df)[2] = "wealth"
+
+# export
+sl19reg <- df
+saveRDS(sl19reg, "./data/sl19reg.rds")
+```
+
+## Conduct Linear Regression
+```{r}
+# reread in object
+sl19reg <- readRDS("./data/sl19reg.rds")
+df <- sl19reg
+
+# lm1
+lm1 <- lm(data = df, wealth ~ acres)
+summary(lm1)
+# plot(lm1)
+
+# try transforming variables
+hist(df$acres)
+hist(df$wealth)
+boxplot(df$acres)
+boxplot(df$wealth)
+
+# shift all wealth values above 0
+df$wealth0 <- df$wealth - min(df$wealth)
+df$wealthsqrt <- (df$wealth0 + 1)^0.25
+df$acreslog <- log(df$acres + 1)
+
+hist(df$acreslog)
+hist(df$wealthsqrt)
+boxplot(df$acreslog)
+boxplot(df$wealthsqrt)
+
+plot(df$acreslog, df$wealthsqrt)
+
+# lm2 
+lm2 <- lm(data = df, wealthsqrt ~ acreslog)
+summary(lm2)
+plot(lm2)
+```
